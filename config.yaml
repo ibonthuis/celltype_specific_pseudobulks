@@ -1,0 +1,9 @@
+## Bin
+bin: "bin"
+
+## Input
+data_dir: "data/input_data"
+
+
+## Results directory:
+output_dir: "snakemake_results"
