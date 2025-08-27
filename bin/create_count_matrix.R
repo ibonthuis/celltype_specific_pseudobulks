@@ -3,6 +3,7 @@ required_libraries <- c(
     "data.table",    
     "dplyr",
     "Seurat",
+    "stringr",
 #   "limma",
  #  "rlang",
   # "purrr"
@@ -50,29 +51,55 @@ opt <- optparse::parse_args(opt_parser)
 
 ## Initialize variable
 SEURAT <- opt$seuratobject
-OUTPUT_DIR <- opt$output_dir
+OUTPUT_PATH <- opt$output_dir
 CELLTYPES <- opt$celltypes
 
 ## Debug
+# SEURAT <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/data/input_data/singlecell.RData"
+# CELLTYPES <- c("CD8NK", "T", "Epithelial")
+# OUTPUT_PATH <- "test"
+# setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
+# dir.create(OUTPUT_PATH, showWarnings = FALSE, recursive = TRUE)
 
 ## Functions
 source("bin/create_count_matrix_fn.R")
 
 ## Create output directory
-dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
+#dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 
 ## Computing
 ALL <- get(load(SEURAT))
 count_matrix <- LayerData(ALL, assay = "RNA", layer = "counts")
 metadata <- ALL@meta.data
-list_of_celltypes <- as.list(CELLTYPES)
+
+list_of_celltypes <- str_split_1(CELLTYPES, ",")
+print(paste0(list_of_celltypes))
+print(paste0(class(list_of_celltypes)))
+
+
 
 # Filter count_matrix for cell types of interest
 filtered_counts <- create_cell_counts_of_cell_types(metadata, list_of_celltypes, count_matrix)
 
 # Filter count_matrix for genes expressed in more than 1% of cells
 
-counts_perTE_filtered <- filter_counts_by_nonzero_geneentries(filtered_counts, 1)
+filtered_counts_genes <- filter_counts_by_nonzero_geneentries(filtered_counts, 1)
 
-# Maybe subsampling now
+filtered_metadata <- meta_per_ct(metadata, list_of_celltypes)
+print(paste0(unique(filtered_metadata$celltype)))
+
+#getwd()
+save(
+    filtered_counts_genes,
+    file = file.path(OUTPUT_PATH, "countmatrix_filtered.RData") #301 MB for c("CD8NK", "T", "Epithelial")
+)
+
+fwrite(
+  filtered_metadata, 
+  file = file.path(OUTPUT_PATH, "metadata_single_cells_filtered.tsv"),
+  sep = "\t",
+  col.names = TRUE,
+  row.names = TRUE
+)
+

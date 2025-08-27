@@ -1,5 +1,6 @@
 create_cell_counts_of_cell_types <- function(metadata, celltypes_list, counts_per_cell) {
   # Filter the metadata for T and Epithelial cell types, excluding unpaired patients
+  # celltypes_list can be of class character, but the celltypes have to be separate
   metadata <- metadata %>%
     filter(celltype %in% celltypes_list) %>%
     filter(patient_ID != "unpaired")
@@ -26,4 +27,11 @@ filter_counts_by_nonzero_geneentries <- function(count_matrix, percent_of_cells)
     cat( ";", paste0(nrow(count_matrix)), " number of genes expressed in ", paste0(percent_of_cells), "% of cells out of a total cell number ", paste0(ncol(count_matrix)), "\n")
 
     return(count_matrix)
+}
+
+meta_per_ct <- function(metadata, celltype_list){
+    metadata_ct <- metadata %>%
+      dplyr::filter(celltype %in% celltype_list) %>%
+      dplyr::filter(patient_ID != "unpaired")
+    return(metadata_ct)
 }
