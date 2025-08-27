@@ -3,8 +3,8 @@ bin: "bin"
 
 ## Input
 data_dir: "data/input_data"
-
+celltypes: ["T", "CD8NK", "Epithelial"]
+subsample_run: ["subsample_run1", "subsample_run2", "subsample_run3", "subsample_run4", "subsample_run5", "subsample_run6", "subsample_run7", "subsample_run8", "subsample_run9", "subsample_run10"]
 
 ## Results directory:
 output_dir: "snakemake_results"
-celltypes: ["T", "Epithelial"]
