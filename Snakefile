@@ -36,13 +36,17 @@ CELLTYPES = config["celltypes"]
 FILTERED_COUNTMATRIX_RDATA = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "countmatrix_filtered.RData")
 FILTERED_METADATA_TSV = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "metadata_single_cells_filtered.tsv")
 LIST_OF_SUBSAMPLES_COUNT_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "subsamples.RData")
+PSEUDOBULKS_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "pseudobulks.RData")
+PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "pseudobulk_metadata.tsv")
 
 ## Rule ALL ##
 rule all:
     input:
         FILTERED_COUNTMATRIX_RDATA, \
         FILTERED_METADATA_TSV, \
-        LIST_OF_SUBSAMPLES_COUNT_RDATA
+        LIST_OF_SUBSAMPLES_COUNT_RDATA, \
+        PSEUDOBULKS_RDATA, \
+        PSEUDOBULK_METADATA_TSV
 
 
 ## Rules ##
@@ -104,25 +108,25 @@ rule run_subsampling:
             -o {params.output_dir}
         """
 
-# rule pseudobulk:
-#     """
-#     This rule creates pseudobulks from single cell count matrices, prepped in the run_subsampling rule. It takes all the subsamples of one subsampling run as input and creates pseudobulks for every patients and aggregates them by cell type. The RData file contains a list per cell type??? Or this rule outputs per celltype?
-#     """
-#     input:
-#         list_of_subsamples = LIST_OF_SUBSAMPLES_COUNT_RDATA
-#     output:
-#         pseudobulk = PSEUDOBULK_RDATA
-#         pseudo_metadata = PSEUDOBULK_METADATA_RDATA
-#     message:
-#         "; pseudobulking"
-#     params:
-#         bin = os.path.join(config["bin"]), \
-#         output_dir = SUBSAMPLES_BASE_DIR
-#     shell:
-#         """
-#         echo "; This file is input for pseudobulks" ;
-#         echo {input.list_of_subsamples}
-#         Rscript {params.bin}/pseudobulk.R \
-#             -s {input.list_of_subsamples} \
-#             -o {params.output_dir}
-#         """
+rule pseudobulk:
+    """
+    This rule creates pseudobulks from single cell count matrices, prepped in the run_subsampling rule. It takes all the subsamples of one subsampling run as input and creates pseudobulks for every patients and aggregates them by cell type. A list of pseudobulks per celltype is stored in the RData file. For example, if you have 3 cell types, the length of the list is 3.
+    """
+    input:
+        list_of_subsamples = LIST_OF_SUBSAMPLES_COUNT_RDATA
+    output:
+        PSEUDOBULKS_RDATA, \ 
+        PSEUDOBULK_METADATA_TSV
+    message:
+        "; pseudobulking"
+    params:
+        bin = os.path.join(config["bin"]), \
+        output_dir = SUBSAMPLES_BASE_DIR
+    shell:
+        """
+        echo "; This file is input for pseudobulks" ;
+        echo {input.list_of_subsamples}
+        Rscript {params.bin}/pseudobulk.R \
+            -s {input.list_of_subsamples} \
+            -o {params.output_dir}
+        """
