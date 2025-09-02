@@ -60,8 +60,8 @@ OUTPUT_PATH <- opt$output_dir
 
 
 ## Debug
-setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
-SUBSAMPLES_LIST <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/subsampled/subsamples.RData"
+#setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
+#SUBSAMPLES_LIST <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/subsampled/subsamples.RData"
 
 #OUTPUT_PATH
 
@@ -73,10 +73,10 @@ subsamples <- get(load(SUBSAMPLES_LIST))
 
 new_metadata <- data.frame(patient_name = c(names(subsamples)))
 new_metadata <- new_metadata %>%
-  separate(patient_name, into = c("patientID", "tumor_type", "celltype"), sep = "_", remove = FALSE)
+  tidyr::separate(patient_name, into = c("patientID", "tumor_type", "celltype"), sep = "_", remove = FALSE)
 
 
-head(new_metadata)
+# head(new_metadata)
 
 # celltype_specific_count_matrices <- gather_celltypes(celltype_ind = "T", count_matrices_list = subsampled_cm_, metadata = new_metadata)
 # length(celltype_specific_count_matrices)
@@ -90,7 +90,8 @@ pseudo_per_celltype <- purrr::map(different_celltypes, ~ gather_and_sum(.x, subs
 pseudo_per_celltype_dfs <- purrr::map(pseudo_per_celltype, function(inner_list){
    reduce(inner_list, function(x, y) full_join(x, y, by = "gene"))
 })
-str(pseudo_per_celltype_dfs)
+# str(pseudo_per_celltype_dfs)
+# length(pseudo_per_celltype_dfs)
 
 pseudo_per_celltype_dfs <- purrr::map(pseudo_per_celltype_dfs, function(df) {
   df <- df[, c(2, 1, 3:ncol(df))]
@@ -109,7 +110,7 @@ pseudo_per_celltype_dfs <- purrr::map(pseudo_per_celltype_dfs, function(df) {
 
 save(
     pseudo_per_celltype_dfs,
-    file = file.path(OUTPUT_PATH, "pseudobulk.RData") # Eventually it should be pseudobulks of a single subsampling run in one file
+    file = file.path(OUTPUT_PATH, "pseudobulks.RData") # Eventually it should be pseudobulks of a single subsampling run in one file
 )
 
 fwrite(
