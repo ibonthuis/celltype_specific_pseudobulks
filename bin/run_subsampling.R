@@ -99,7 +99,7 @@ combos <- tidyr::expand_grid(
 )
 
 
-# Apply the function using pmap
+# Apply the function to sort metadata by patient and tumor type (tt) using pmap
 results <- pmap(combos, ~ meta_per_patient_and_tt(..1, ..2, ..3))
 
 

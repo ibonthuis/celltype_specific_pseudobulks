@@ -37,7 +37,41 @@ meta_per_ct <- function(metadata, celltype_list){
 #   return(filtered_metadata_ct_pp)
 # }
 
-# Modified the above function to take the index of the metadata
+
+#' Extract Patient-Specific Metadata for a Given Tumor Type
+#'
+#' This function retrieves metadata for a specific patient and tumor type (being primary or metastatic (Lymph Node
+#' in this case)), based on the provided cell type index. The metadata is filtered to include only the records
+#' corresponding to the specified patient ID and tumor type.
+#'
+#' It is easiest to accompany this function with the expand_grid function from tidyr package.
+#' So that one automatically makes all the patient, tumor type, cell type combinations.
+#' @param patient A character string representing the unique identifier of the patient.
+#' @param tumor_type A character string representing the tumor type of interest.
+#' @param cell_type_index An integer representing the index for the cell type in the metadata list.
+#'
+#' @return A data frame containing the filtered metadata for the specified patient and tumor type.
+#'         The data frame will include all relevant metadata fields specific to the treatment conditions.
+#'
+#' @details The function accesses a global metadata list, `metadata_per_ct`, which should
+#'          be defined in the environment prior to calling this function. Each index in this list
+#'          corresponds to a different cell type's metadata. The function ensures that the output
+#'          contains only records that match both the provided patient ID and tumor type.
+#'
+#' @examples
+#' combos <- tidyr::expand_grid(
+#'  patient = patients,
+#'  tumor_type = tumor_type,
+#'  cell_type_index = seq_along(metadata_per_ct) 
+#' )
+#' Apply it with a function from purrr package:
+#' results <- pmap(combos, ~ meta_per_patient_and_tt(..1, ..2, ..3))
+#' 
+#' Or with just one combination of patient and celltype and tumor type:
+#' Assuming patient ID is "P001", tumor type is "Primary", and the cell type index is 1
+#' filtered_metadata <- meta_per_patient_and_tt("P001", "Primary", 1)
+#'
+#' @export
 meta_per_patient_and_tt <- function(patient, tumor_type, cell_type_index) {
   metadata_ct <- metadata_per_ct[[cell_type_index]]  # Get the appropriate metadata for this index
 
