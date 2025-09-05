@@ -37,8 +37,8 @@ RUN_NR = config["subsample_run"]
 FILTERED_COUNTMATRIX_RDATA = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "countmatrix_filtered.RData")
 FILTERED_METADATA_TSV = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "metadata_single_cells_filtered.tsv")
 LIST_OF_SUBSAMPLES_COUNT_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "subsamples.RData")
-PSEUDOBULKS_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "pseudobulks.RData")
-PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "pseudobulk_metadata.tsv")
+PSEUDOBULK_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "pseudobulk.tsv")
+PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "pseudobulk_metadata.tsv")
 
 ## Rule ALL ##
 rule all:
@@ -46,8 +46,8 @@ rule all:
         FILTERED_COUNTMATRIX_RDATA, \
         FILTERED_METADATA_TSV, \
         expand(LIST_OF_SUBSAMPLES_COUNT_RDATA, subsample_run = RUN_NR), \
-        expand(PSEUDOBULKS_RDATA, subsample_run = RUN_NR), \
-        expand(PSEUDOBULK_METADATA_TSV, subsample_run = RUN_NR)
+        expand(PSEUDOBULK_TSV, subsample_run = RUN_NR, celltypes = CELLTYPES), \
+        expand(PSEUDOBULK_METADATA_TSV, subsample_run = RUN_NR, celltypes = CELLTYPES)
 
 ## Rules ##
 
@@ -108,23 +108,23 @@ rule run_subsampling:
             -o {params.output_dir}
         """
 
-rule pseudobulk:
+rule create_pseudobulk:
     """
-    This rule creates pseudobulks from single cell count matrices, prepped in the run_subsampling rule. It takes all the subsamples of one subsampling run as input and creates pseudobulks for every patients and aggregates them by cell type. A list of pseudobulks per celltype is stored in the RData file. For example, if you have 3 cell types, the length of the list is 3.
+    This rule creates pseudobulk from single cell count matrices, prepped in the run_subsampling rule. It takes all the subsamples of one subsampling run as input and creates pseudobulk for every patient and aggregates them by cell type, the celltype as defined by the wildcard. A pseudobulk per celltype is stored in the RData file. 
     """
     input:
         list_of_subsamples = LIST_OF_SUBSAMPLES_COUNT_RDATA
     output:
-        PSEUDOBULKS_RDATA, \ 
+        PSEUDOBULK_TSV, \ 
         PSEUDOBULK_METADATA_TSV
     message:
         "; pseudobulking"
     params:
         bin = os.path.join(config["bin"]), \
-        output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}")
+        output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}")
     shell:
         """
-        echo "; This file is input for pseudobulks" ;
+        echo "; This file is input for pseudobulk" ;
         echo {input.list_of_subsamples}
         Rscript {params.bin}/pseudobulk.R \
             -s {input.list_of_subsamples} \
@@ -137,7 +137,7 @@ rule pseudobulk:
 #     This rule should take as input the pseudobulk dataframe per cell type from the pseudobulk rule. Then networks should be built for each pseudobulk using sisana in this rule.
 #     """
 #     input:
-#         pseudobulk = PSEUDOBULKS_RDATA
+#         pseudobulk = PSEUDOBULKS_TSV
 #     output:
 #         networks
 #     shell:
