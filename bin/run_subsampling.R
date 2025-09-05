@@ -3,7 +3,7 @@ required_libraries <- c(
     "data.table",    
     "dplyr",
     "tidyr",
-  #  "stringr",
+    "stringr",
    # "ggplot2",
    # "Seurat",
 #   "limma",
@@ -54,15 +54,19 @@ OUTPUT_PATH <- opt$output_dir
 
 ## Debug
 #COUNTMATRIX <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/test/countmatrix_subsample.RData"
-COUNTMATRIX <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/countmatrix_filtered/countmatrix_filtered.RData"
-METADATA <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/countmatrix_filtered/metadata_single_cells_filtered.tsv"
-#METADATA <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/test/metadata_single_cells.tsv"
-setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
-OUTPUT_DIR <- "subsamples"
+# COUNTMATRIX <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/countmatrix_filtered/countmatrix_filtered.RData"
+# METADATA <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/countmatrix_filtered/metadata_single_cells_filtered.tsv"
+# #METADATA <- "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/test/metadata_single_cells.tsv"
+# setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
+# OUTPUT_DIR <- "subsamples"
 
 ## Functions
 #setwd("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks")
 source("bin/run_subsampling_fn.R")
+
+## Create output directory
+dir.create(OUTPUT_PATH, showWarnings = FALSE, recursive = TRUE)
+
 
 count_matrix <- get(load(COUNTMATRIX))
 
@@ -105,17 +109,26 @@ results <- pmap(combos, ~ meta_per_patient_and_tt(..1, ..2, ..3))
 
 metadata_filtered <- map(results, ~ filter_metadata_100(.x))
 metadata_filtered_list <- Filter(Negate(is.null), metadata_filtered)
-subsampled_cm <- map(metadata_filtered_list, ~ make_subsample_count_matrix(filtered_metadata_ct_pp = .x, counts = counts_per_ct, nr_of_cells_to_sample = 100, OUTPUT_DIR = OUTPUT_DIR))
 
-#subsampled_cm_ <- unlist(subsampled_cm)
-flat_subsampled_cm <- purrr::flatten(subsampled_cm)
-length(flat_subsampled_cm)
+# extract the wildcard "subsample_runi" Where i stands for the number
+# the number I can extract from the OUTPUT_PATH
 
-save(
-  flat_subsampled_cm,
-  file = file.path(OUTPUT_PATH, "subsamples.RData")
-)
+#OUTPUT_PATH <- "find_something/subsample_run1"
+print(paste0(OUTPUT_PATH))
+the_number <- str_split_i(OUTPUT_PATH, "subsample_run", 2)
 
+#for (i in 1:10) {
+  subsampled_cm <- map(metadata_filtered_list, ~ make_subsample_count_matrix(filtered_metadata_ct_pp = .x, counts = counts_per_ct, nr_of_cells_to_sample = 100, seednr = the_number)) #, OUTPUT_DIR = OUTPUT_DIR
+
+  #subsampled_cm_ <- unlist(subsampled_cm)
+  flat_subsampled_cm <- purrr::flatten(subsampled_cm)
+  length(flat_subsampled_cm)
+
+  save(
+    flat_subsampled_cm,
+    file = file.path(OUTPUT_PATH, "subsamples.RData")
+  )
+#}
 
 # Quick check if now orig.ident are kind of correct in the colnames of the subsamples
 # col <- colnames(subsampled_cm[[1]])
@@ -140,3 +153,14 @@ save(
 # TO DO I need to check the order of the column names and metadata names
 # Maybe they don't need to be in the same order, but they should have overlap, so that the right columns are selected for the count_matrix
 
+
+# test1 <- get(load("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/subsampled/subsample_run2/subsample_run1.RData"))
+# str(test1)
+# head(test1[[1]])
+# test1[[1]][1:5,1:5]
+# names(test1)
+
+
+# pseu1 <- get(load("/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/snakemake_results/subsampled/pseudobulks.RData"))
+
+# str(pseu1)

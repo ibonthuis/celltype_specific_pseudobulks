@@ -107,7 +107,7 @@ filter_count_matrix <- function(count_matrix, metadata_per_ct, celltype_list) {
 }
 
 # TO DO: check whether it is 100 cells and not 101 or something, because in the past I've seen stuff having 101 columns, but maybe the first column is just the gene column
-make_subsample_count_matrix <- function(filtered_metadata_ct_pp, counts, nr_of_cells_to_sample, OUTPUT_DIR){
+make_subsample_count_matrix <- function(filtered_metadata_ct_pp, counts, nr_of_cells_to_sample, seednr){ # , OUTPUT_DIR
   # metadata must be already filtered for celltype
   idents_to_keep <- filtered_metadata_ct_pp$V1
   patient_id <- paste(unique(filtered_metadata_ct_pp$patient_ID), unique(filtered_metadata_ct_pp$GroupID), unique(filtered_metadata_ct_pp$celltype), sep = "_")
@@ -119,7 +119,7 @@ make_subsample_count_matrix <- function(filtered_metadata_ct_pp, counts, nr_of_c
  # print(paste0(idents_to_keep[1:5]))
   counts_ct_pp <- counts[, colnames(counts) %in% idents_to_keep] 
 
-  set.seed(42)
+  set.seed(seednr)
   idx <- sample(c(1:ncol(counts_ct_pp)), nr_of_cells_to_sample)
 #  print(paste0(length(idx)))
 

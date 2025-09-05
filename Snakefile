@@ -30,24 +30,24 @@ INPUT_SEURAT = os.path.join(DATA_DIR, "singlecell.RData")
 
 ## Other inputs ##
 CELLTYPES = config["celltypes"]
+RUN_NR = config["subsample_run"]
 
 
 ## Output files ##
 FILTERED_COUNTMATRIX_RDATA = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "countmatrix_filtered.RData")
 FILTERED_METADATA_TSV = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "metadata_single_cells_filtered.tsv")
-LIST_OF_SUBSAMPLES_COUNT_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "subsamples.RData")
-PSEUDOBULKS_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "pseudobulks.RData")
-PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "pseudobulk_metadata.tsv")
+LIST_OF_SUBSAMPLES_COUNT_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "subsamples.RData")
+PSEUDOBULKS_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "pseudobulks.RData")
+PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "pseudobulk_metadata.tsv")
 
 ## Rule ALL ##
 rule all:
     input:
         FILTERED_COUNTMATRIX_RDATA, \
         FILTERED_METADATA_TSV, \
-        LIST_OF_SUBSAMPLES_COUNT_RDATA, \
-        PSEUDOBULKS_RDATA, \
-        PSEUDOBULK_METADATA_TSV
-
+        expand(LIST_OF_SUBSAMPLES_COUNT_RDATA, subsample_run = RUN_NR), \
+        expand(PSEUDOBULKS_RDATA, subsample_run = RUN_NR), \
+        expand(PSEUDOBULK_METADATA_TSV, subsample_run = RUN_NR)
 
 ## Rules ##
 
@@ -88,7 +88,7 @@ rule create_count_matrix:
 
 rule run_subsampling:
     """
-    This rule makes sure to run one batch of subsampling. This rule is aimed to run 10x, so I have 10 varieties of subsamples (random). As input it takes count_matrix (dgCmatrix is fine) and metadata, both filtered in the create_count_matrix rule.
+    This rule makes sure to run one batch of subsampling. This rule is aimed to run 10 times, so I have 10 varieties of subsamples (random). As input it takes a count_matrix (dgCmatrix is fine) and metadata (tab separated), both filtered in the create_count_matrix rule.
     """
     input:
         count_matrix = FILTERED_COUNTMATRIX_RDATA, \
@@ -99,7 +99,7 @@ rule run_subsampling:
         "; running subsampling."
     params:
         bin = os.path.join(config["bin"]), \
-        output_dir = SUBSAMPLES_BASE_DIR
+        output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}")
     shell:
         """
         Rscript {params.bin}/run_subsampling.R \
@@ -121,7 +121,7 @@ rule pseudobulk:
         "; pseudobulking"
     params:
         bin = os.path.join(config["bin"]), \
-        output_dir = SUBSAMPLES_BASE_DIR
+        output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}")
     shell:
         """
         echo "; This file is input for pseudobulks" ;
@@ -130,3 +130,18 @@ rule pseudobulk:
             -s {input.list_of_subsamples} \
             -o {params.output_dir}
         """
+
+
+# rule construct_networks:
+#     """
+#     This rule should take as input the pseudobulk dataframe per cell type from the pseudobulk rule. Then networks should be built for each pseudobulk using sisana in this rule.
+#     """
+#     input:
+#         pseudobulk = PSEUDOBULKS_RDATA
+#     output:
+#         networks
+#     shell:
+#         """
+#         conda activate sisana_sept2025
+        
+#         """
