@@ -18,20 +18,33 @@ CONFIG_PATH = "config.yaml"
 configfile: CONFIG_PATH
 
 ## Container
+PYTHON_CONTAINER = config["python_container"]
+
 
 ## Directories
 DATA_DIR = config["data_dir"]
+YAML_DIR = config["yaml_dir"]
 BASE_OUTPUT_DIR = config["output_dir"]
 FILTERED_COUNTMATRIX_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "countmatrix_filtered/")
 SUBSAMPLES_BASE_DIR = os.path.join(BASE_OUTPUT_DIR, "subsampled/")
+PSEUDOBULK_DIR = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}")
+NETWORK_DIR = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "network")
 
 ## Input files ##
 INPUT_SEURAT = os.path.join(DATA_DIR, "singlecell.RData")
+INPUT_YAML = os.path.join(YAML_DIR, "params.yml")
 
 ## Other inputs ##
 CELLTYPES = config["celltypes"]
 RUN_NR = config["subsample_run"]
 
+# # SiSaNA outputs
+# EXPRESSION_FILTERED = os.path.join(SISANA_DIR, "preprocess", EXP + "_filtered.txt")
+# MOTIF_PRIOR_FILTERED = os.path.join(SISANA_DIR, "preprocess", MOTIF_PRIOR_TAG + "_filtered.txt")
+# PPI_PRIOR_FILTERED = os.path.join(SISANA_DIR, "preprocess", PPI_PRIOR_TAG + "_filtered.txt")
+# STATS = os.path.join(SISANA_DIR, "preprocess", EXP + "_filtering_statistics.txt")
+# PANDA_NET = os.path.join(SISANA_DIR, "network", "panda_network.txt")
+# MOTIF_PRIOR_FILTERED = os.path.join(SISANA_DIR, "preprocess", MOTIF_PRIOR_TAG + "_filtered.txt")
 
 ## Output files ##
 FILTERED_COUNTMATRIX_RDATA = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "countmatrix_filtered.RData")
@@ -39,6 +52,9 @@ FILTERED_METADATA_TSV = os.path.join(FILTERED_COUNTMATRIX_OUTPUT_DIR, "metadata_
 LIST_OF_SUBSAMPLES_COUNT_RDATA = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "subsamples.RData")
 PSEUDOBULK_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "pseudobulk.tsv")
 PSEUDOBULK_METADATA_TSV = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "pseudobulk_metadata.tsv")
+#LIONESS_NPY = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "network", "lioness.npy")
+COPIED_PARAMS = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}", "params.yml")
+
 
 ## Rule ALL ##
 rule all:
@@ -47,7 +63,10 @@ rule all:
         FILTERED_METADATA_TSV, \
         expand(LIST_OF_SUBSAMPLES_COUNT_RDATA, subsample_run = RUN_NR), \
         expand(PSEUDOBULK_TSV, subsample_run = RUN_NR, celltypes = CELLTYPES), \
-        expand(PSEUDOBULK_METADATA_TSV, subsample_run = RUN_NR, celltypes = CELLTYPES)
+        expand(PSEUDOBULK_METADATA_TSV, subsample_run = RUN_NR, celltypes = CELLTYPES), \
+        #expand(LIONESS_NPY, subsample_run = RUN_NR, celltypes = CELLTYPES),\
+        expand(COPIED_PARAMS, subsample_run = RUN_NR, celltypes = CELLTYPES)
+        
 
 ## Rules ##
 
@@ -132,16 +151,145 @@ rule create_pseudobulk:
         """
 
 
-# rule construct_networks:
+# rule preprocess_networks:
 #     """
-#     This rule should take as input the pseudobulk dataframe per cell type from the pseudobulk rule. Then networks should be built for each pseudobulk using sisana in this rule.
+#     This rule should take as input the pseudobulk dataframe per cell type from the pseudobulk rule.  
 #     """
 #     input:
-#         pseudobulk = PSEUDOBULKS_TSV
+#         yaml_file = "params.yml"
 #     output:
-#         networks
+#         # I have to check whether sisana automatically 
+#         preprocessed_file = "pseudobulk_preprocessed.txt"
+
+#     params:
+#         output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}")
 #     shell:
 #         """
 #         conda activate sisana_sept2025
-        
+#         sisana preprocess config.yaml
+#         conda deactivate
+#         """
+
+# rule build_networks:
+#     """
+#     Then networks should be built for each pseudobulk using sisana in this rule.
+#     """
+#     input:
+#         PSEUDOBULK_TSV
+#         # preprocessed_file = "pseudobulk_preprocessed.txt", \
+#         # preprocessed_motif_prior = "motif_prior_names_2024.tsv", \
+#         # preprocessed_ppi = "ppi_prior_2024.tsv"
+#     output:
+#         LIONESS_NPY#, \
+#         # lioness_pickle = "lioness.pickle", \
+#         # lioness_indegree = "lioness_indegree.csv", \
+#         # lioness_outdegree = "lioness_outdegree.csv", \
+#         # panda_output = "panda_network.txt"
+#     params:
+#         "config.yaml"
+#         #output_dir = os.path.join(SUBSAMPLES_BASE_DIR, "{subsample_run}", "{celltypes}")
+#     # conda:
+#     # #     #"sisana_env.yaml"
+#     #     "/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/sisana_sept2025"
+#     shell:
+#         """
+#         #conda run -p /storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/sisana_sept2025 sisana generate config.yaml
+#         echo {PSEUDOBULK_TSV}
+#         """
+#         #/storage/kuijjerarea/ine/projects/BRCA_SINGLECELL_TO_PSEUDOBULK/celltype_specific_pseudobulks/ # path for sisana env
+#         #sisana generate config.yaml
+
+
+# rule list_inputs:
+#     """
+#     This script should echo the filepaths I need for my params.yml files, as PSEUDOBULK_TSV is made up of wild cards
+#     """
+#     input: 
+#         PSEUDOBULK_TSV
+#         params_file = "params.yml"
+#     shell:
+#         """
+#         echo PSEUDOBULK_TSV
+#         """
+
+# rule place_yaml_file:
+#     """
+#     This script should copy a basic yaml file into the folders specified by wildcards
+#     """
+#     input: 
+#         input_params = INPUT_YAML
+#     output:
+#         output_params = COPIED_PARAMS
+#     params:
+#        # output_dir = PSEUDOBULK_DIR, \
+#         subsampleruns_dir = SUBSAMPLES_BASE_DIR
+#     shell:
+#         """
+#         echo ${subsampleruns_dir}
+#         echo ${input_params}
+#         echo ${output_params}
+
+#         """
+
+        # for dir in ${subsampleruns_dir}
+        # do
+        #     # Get the directory name
+        #     directory=${dir}
+        #     echo "$directory"
+            
+        #     # Copy the params file to the directory
+        #     cp ${input_params} $directory
+
+        #     # Run sisana
+        #     path_to_params=$directory/params.yml
+        #     echo "$path_to_params"
+        #     # sisana generate $path_to_params
+        # done
+
+rule place_yaml_file:
+    """
+    This script should copy a basic yaml file into the folders specified by wildcards
+    """
+    input: 
+        params_yaml = INPUT_YAML
+    output:
+      #  output_params = f"{params.subsampleruns_dir}/subsampled/{wildcards.subsample_run}/{wildcards.celltypes}/params.yml"
+        output_params = COPIED_PARAMS
+    # params:
+    #     subsampleruns_dir = SUBSAMPLES_BASE_DIR
+    shell:
+        """
+        cp {input.params_yaml} {output.output_params}
+        """
+
+# rule run_sisana:
+#     """
+#     With the params.yml files copied into every directory together with the pseudobulk.tsv, it should be able to run sisana, if the environment can correctly be identified.
+#     Outputs
+#     -------
+#     EXPRESSION_FILTERED:
+#         A TXT file with filtered expression.
+#     MOTIF_PRIOR_FILTERED:
+#         A TXT file with filtered motif prior.
+#     PPI_PRIOR_FILTERED:
+#         A TXT file with filtered PPI prior.
+#     STATS:
+#         A file containing information about genes filtered.
+#     PANDA_NET:
+#         A TXT file with the PANDA network.
+#     """
+#     input:
+#         paramsfiles = COPIED_PARAMS
+#     output:
+#         EXPRESSION_FILTERED, \
+#         MOTIF_PRIOR_FILTERED, \
+#         PPI_PRIOR_FILTERED, \
+#         STATS, \
+#         PANDA_NET
+#     container:
+#         PYTHON_CONTAINER
+#     shell:
+#         """
+#         echo ${input.paramsfiles}
+#         sisana generate ${input.paramsfiles}
 #         """

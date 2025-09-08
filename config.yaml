@@ -3,8 +3,14 @@ bin: "bin"
 
 ## Input
 data_dir: "data/input_data"
+yaml_dir: "data/yaml_script"
 celltypes: ["T", "CD8NK", "Epithelial"]
 subsample_run: ["subsample_run1", "subsample_run2", "subsample_run3", "subsample_run4", "subsample_run5", "subsample_run6", "subsample_run7", "subsample_run8", "subsample_run9", "subsample_run10"]
+#celltypes: ["CD8NK"]
+#subsample_run: ["subsample_run1"]
+python_container: "docker://rtpop/hedgehog-run:1.0"
+
+
 
 ## Results directory:
 output_dir: "snakemake_results"
@@ -17,21 +23,22 @@ output_dir: "snakemake_results"
 # Stage 1: Preprocess data to remove genes not expressed in enough samples
 # example: sisana preprocess ./example_inputs/params.yml
 preprocess:
-  exp_file: ./example_inputs/BRCA_TCGA_20_LumA_LumB_samps_5000_genes_exp.tsv # Path to expression file, which MUST CONTAIN A HEADER
-  exp_file: "{output_dir}/{subsample_run}/pseudobulk/celltype" # will this work, it's a suggestion of gpt
-  number: 5 # number of samples a gene must be expressed in
-  outdir: ./output/preprocess # The directory to save the output to
+ # exp_file: ./example_inputs/BRCA_TCGA_20_LumA_LumB_samps_5000_genes_exp.tsv # Path to expression file, which MUST CONTAIN A HEADER
+  exp_file: "{output_dir}/{subsample_run}/{celltype}/pseudobulk.tsv" # will this work, it's a suggestion of gpt
+  number: 0 # number of samples a gene must be expressed in
+  outdir: "{output_dir}/preprocess" # The directory to save the output to
 
 # Stage 2: Reconstruct networks and calculate degrees
 # example: sisana generate ./example_inputs/params.yml
 generate:
-  exp: ./output/preprocess/BRCA_TCGA_20_LumA_LumB_samps_5000_genes_exp_preprocessed.txt # Path to the expression file (RNA-Seq or microarray). Must be in matrix format with genes as rows and sample names as columns.
-  motif: ./example_inputs/motif_prior_names_2024.tsv # Path to the motif prior file. This file is generated with SPONGE and for most users, this file can be used for their analysis as well.
-  ppi: ./example_inputs/ppi_prior_2024.tsv # Path to the PPI prior file. This file is generated with SPONGE and for most users, this file can be used for their analysis as well.
+  #exp: "SUBSAMPLES_BASE_DIR/{subsample_run}/{celltype}/pseudobulk.tsv" # Path to the expression file (RNA-Seq or microarray). Must be in matrix format with genes as rows and sample names as columns.
+  exp: "PSEUDOBULK_TSV"
+  motif: ./data/input_data/motif_prior_names_2024.tsv # Path to the motif prior file. This file is generated with SPONGE and for most users, this file can be used for their analysis as well.
+  ppi: ./data/input_data/ppi_prior_2024.tsv # Path to the PPI prior file. This file is generated with SPONGE and for most users, this file can be used for their analysis as well.
   method: lioness # Which method to use, either "panda" to run just PANDA or "lioness", which runs PANDA first, then LIONESS
-  pandafilepath: ./output/network/panda_network.txt # Path to the PANDA output file to be created. Must have a .txt extension.
+  pandafilepath: "SUBSAMPLES_BASE_DIR/{subsample_run}/{celltype}/network/panda_network.txt" # Path to the PANDA output file to be created. Must have a .txt extension.
 
   # The following commands are used if you specified "lioness" for the "method" arg
   compute: cpu # Whether to use "gpu" or "cpu" for computing LIONESS networks
-  ncores: 20 # Number of cores to use for calculating LIONESS networks. Must be less than or equal to the number of samples.
-  
+  ncores: 5 # Number of cores to use for calculating LIONESS networks. Must be less than or equal to the number of samples.
+  lionessfilepath: "SUBSAMPLES_BASE_DIR/{subsample_run}/{celltype}/network/lioness_networks.npy" # Path to the lioness output file to be created. Must have a .npy extension.
